@@ -1,0 +1,11 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.crash.log
+.terraform.lock.hcl
+/Users/eazyfixit/Documents/TerraformProject-1/Main/.terraform.lock.hcl
+/Users/eazyfixit/Documents/TerraformProject-1/Main/terraform.tfstate
+/Users/eazyfixit/Documents/TerraformProject-1/Main/terraform.tfstate.backup
+/Users/eazyfixit/Documents/TerraformProject-1/Main/.terraform/
+..DS_Store
