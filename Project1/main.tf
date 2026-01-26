@@ -1,10 +1,13 @@
 
-# creating s3  bucket
+
 resource "aws_s3_bucket" "firstbucket" {
     bucket= var.first_bucket_name
 }
 
-# making s3 bucket private
+resource "aws_s3_bucket" "bucket_logging" {
+  bucket = var.logs
+}
+
 resource "aws_s3_bucket_public_access_block" "block" {
   bucket = aws_s3_bucket.firstbucket.id
 
@@ -14,7 +17,7 @@ resource "aws_s3_bucket_public_access_block" "block" {
   restrict_public_buckets = true
 }
 
-#  adding s3 bucket  policies
+
   resource "aws_s3_bucket_policy" "cloudfront_access" {
   bucket = aws_s3_bucket.firstbucket.id
   depends_on = [ aws_s3_bucket_public_access_block.block]
@@ -69,7 +72,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "bucket_encryption
 }
 
 
-# making the  access of the bucket 
 resource "aws_cloudfront_origin_access_control" "oac" {
   name                              = "demo_oac"
   description                       = "Example Policy"
@@ -107,8 +109,13 @@ resource "aws_s3_object" "object" {
 }
 
 
-
 resource "aws_cloudfront_distribution" "s3_distribution" {
+  logging_config {
+    bucket = aws_s3_bucket.bucket_logging.bucket_domain_name
+    include_cookies = false
+    prefix = "cloudfront-logs/"
+  }
+
   origin {
     domain_name              = aws_s3_bucket.firstbucket.bucket_regional_domain_name
     origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
@@ -120,7 +127,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   comment             = "Some comment"
   default_root_object = "index.html"
 
-
+ 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD"]
     cached_methods   = ["GET", "HEAD"]
@@ -128,11 +135,13 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
     forwarded_values {
       query_string = false
-
+  
       cookies {
         forward = "none"
       }
     }
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.secure-headers.id
+    compress =  true
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0
     default_ttl            = 3600
@@ -147,10 +156,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
   }
 
-aliases = ["nikhil.com"]
+
   viewer_certificate {
-     acm_certificate_arn = aws_acm_certificate.dev_certificate.arn
-     ssl_support_method = "sni-only"
+     cloudfront_default_certificate = true 
   }
 
   depends_on = [
@@ -159,41 +167,34 @@ aliases = ["nikhil.com"]
 }
 
 
-resource "aws_route53_zone" "main" {
-    name= "nikhil.com"
-}
+resource "aws_cloudfront_response_headers_policy" "secure-headers" {
+   name  = "securing-headers-policy"
 
+   security_headers_config {
+     content_type_options {
+       override = true
+     }
 
-resource "aws_acm_certificate" "dev_certificate" {
-    provider          = aws.use1
-    domain_name = "nikhil.com"
-    validation_method = "DNS"
-
-    lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_route53_record" "dev_ns" {
-  for_each = {
-    for dvo in aws_acm_certificate.dev_certificate.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
+    frame_options{
+      frame_option = "DENY"
+      override =true
     }
-  }
 
-  allow_overwrite = true
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 60
-  type            = each.value.type
-  zone_id         = aws_route53_zone.main.zone_id
+    referrer_policy {
+      referrer_policy = "same-origin"
+      override = true
+    }
+    strict_transport_security {
+      access_control_max_age_sec = 63072000
+      include_subdomains = true
+      preload = true
+      override = true
+    }
+
+    xss_protection {
+      mode_block = true
+      override = true
+      protection = true
+   }
 }
-
-
-
-resource "aws_acm_certificate_validation" "arn_val  id" {
-   certificate_arn         = aws_acm_certificate.dev_certificate.arn
-  validation_record_fqdns = [for record in aws_route53_record.dev_ns : record.fqdn]
 }
