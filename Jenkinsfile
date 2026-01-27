@@ -5,7 +5,7 @@ pipeline {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key')       // Your Jenkins Access Key ID credential ID
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')       // Your Jenkins Secret Key credential ID
         TF_IN_AUTOMATION      = "true"
-        PATHL = "/usr/local/bin:${env.PATH}"
+        PATH = "/usr/local/bin:${env.PATH}"
     }
 
     stages {
