@@ -1,45 +1,46 @@
-pipeline{
+pipeline {
     agent any
 
-    env {
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
-        TF_IN_AUTOMATION= "true"
-    }
-   stages{
-    stages("Checkout code"){
-        steps{
-            git 'https://github.com/Nikhil00-7/Terraform-projects.git'
-        }
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key')       // Your Jenkins Access Key ID credential ID
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')       // Your Jenkins Secret Key credential ID
+        TF_IN_AUTOMATION      = "true"
     }
 
-    stages("Terraform init"){
-        steps{
-            sh "terraform init"
-        }
-    }
+    stages {
 
-    stages("Terraform plan"){
-        steps{
-            sh "terraform plan"
+        stage('Checkout Code') {
+            steps {
+                git 'https://github.com/Nikhil00-7/Terraform-projects.git'
+            }
         }
 
+        stage('Terraform Init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                sh 'terraform plan -out=tfplan'
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                sh 'terraform apply -auto-approve tfplan'
+            }
+        }
+
     }
 
-    stages("Terraform apply"){
-        steps{
-            sh "terraform apply --auto-approve"
+    post {
+        success {
+            echo 'Infrastructure deployed successfully!'
+        }
+        failure {
+            echo 'Infrastructure deployment failed!'
         }
     }
-   }
-
-  post{
-    success{
-        echo "infrastructure deployed successfully"
-     }
-   }
-    failure{
-        echo "infrastructure deployment failed"
-    }
-
 }
