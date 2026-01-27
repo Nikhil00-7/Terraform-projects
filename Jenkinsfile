@@ -11,7 +11,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'main' url: 'https://github.com/Nikhil00-7/Terraform-projects.git'
+                git branch: 'main' ,url: 'https://github.com/Nikhil00-7/Terraform-projects.git'
             }
         }
 
